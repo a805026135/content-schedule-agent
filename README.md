@@ -1,5 +1,6 @@
 # 素材审核与发布排期 Agent
 
+> **仓库**：https://github.com/a805026135/content-schedule-agent
 > **题号**：第 1 题 · 素材审核与发布排期 Agent
 > **运行方式**：CLI
 > **模型**：`deepseek-flash`（DeepSeek-V4.1-Flash-1017），非思考模式，`temperature=0`

@@ -9,8 +9,10 @@
 ## 题号与交付
 
 - **题号**：第 1 题 · 素材审核与发布排期 Agent
-- **仓库**：https://github.com/a805026135/content-schedule-agent （私有，已授权评审账号）
-- **最终 commit SHA**：`be690108c66b1146daa3fd12e9d92ada9ef78b17`
+- **仓库**：https://github.com/a805026135/content-schedule-agent （私有，需先授权评审账号）
+- **最终 commit SHA**：`main` 分支 tip —— 提交表单时填 `git rev-parse origin/main` 的输出。
+  （刻意不把 SHA 硬编码进仓库文件：写在文件里的 SHA 必然早于包含它的那次提交，
+  硬编码只会让文档与 tip 永远差一个提交。）
 - **运行方式**：CLI
 - **模型**：`deepseek-flash`（DeepSeek-V4.1-Flash-1017，非思考模式，`temperature=0`）
 - **编排**：LangGraph `1.2.17`，手写 `StateGraph`（不使用 `prebuilt.create_react_agent`）
