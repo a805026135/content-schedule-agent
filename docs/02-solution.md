@@ -61,7 +61,9 @@ CLI            src/cli.py                入参、退出码、把 trace 落成�
 - **为什么**：OWASP 把「智能体被赋予的权限超过任务所需」单列为一项风险 Excessive Agency，
   其缓解措施第一条就是**最小化工具集合**。护栏（提示词）会被绕过，**能力边界不会依赖模型是否听话**。
   评测里"越权发布"是本题的关键缺陷——我们让它在架构上无法发生，而不是祈祷它不发生。
-- **可验证**：`tests/test_guardrails.py` 断言工具注册表的键集合等于白名单，任何人新增写工具都会让测试变红。
+- **可验证**：`tests/test_tools.py::test_registry_contains_no_publish_capability` 断言工具注册表的键集合
+  等于白名单；`tests/test_decision_paths.py::test_no_publish_tool_and_no_publish_wording`
+  再对最终结论做一次发布措辞扫描。任何人新增写工具都会让测试变红。
 
 ### D2 · 规则判定下沉到工具层，模型只读结果
 

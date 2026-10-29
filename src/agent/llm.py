@@ -275,8 +275,12 @@ def build_llm_client(
         return DeepSeekLLMClient(settings)
     if actual == "mock":
         raise ValueError(
-            "mock 模式需要提供显式脚本（script 参数），"
-            "否则无从决定动作。请在 CLI 中使用 --mock-script 指定。"
+            "mock 模式需要提供显式脚本，否则无从决定动作 —— "
+            "离线替身不能替模型做决定，所以不存在「什么都不传也能跑」的模式。\n"
+            "请在 CLI 中用 --mock-script 指定；仓库已附带可直接使用的脚本，例如：\n"
+            "  python -m src.cli --material M01 --request-id REQ-MOCK \\\n"
+            "      --mock-script examples/mock/mock_script_example.json\n"
+            "或一次性重放全部七条路径：python scripts/run_examples.py --provider mock"
         )
     raise ValueError(f"未知的 LLM_PROVIDER：{actual}")
 

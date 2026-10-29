@@ -36,7 +36,7 @@
 | 试卷要求 | 本项目落点 |
 |---|---|
 | 模型选动作 → 执行工具 → 观察 → 调整的循环 | `src/agent/graph.py`：`decide → execute/clarify → decide` |
-| ≥2 条差异化路径的运行记录 | `examples/real_llm/case04`（冲突）与 `case02`（信息缺失） |
+| ≥2 条差异化路径的运行记录 | `examples/real_llm/case04_slot_conflict/`（冲突）与 `case02_missing_info/`（信息缺失） |
 | trace 含步骤/参数/返回摘要/后续动作/决策依据 | `ToolCallRecord` schema，`next_action` 在 finalize 回填 |
 | 步数或工具调用上限 + 明确的未完成状态 | `max_steps` / `max_tool_calls`；超限返回 `MAX_STEPS_EXCEEDED`，CLI 退出码 `2` |
 | ≥3 组输入覆盖正常 / 资料不足 / 工具失败 | `examples/real_llm/` 下 7 组，含 `case07` 超限 |

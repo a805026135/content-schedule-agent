@@ -2,14 +2,14 @@
 
 > 这份文件的内容**可以直接粘贴到测评的答题区域**。它回答的是"仓库里放不下、或评审来不及从代码里看出来的东西"：
 > 题号、核心取舍、两条决策路径、边界与未完成项、AI 使用声明。
-> 仓库里的完整论证见 `docs/01` ~ `docs/05`，运行材料见 `examples/`。
+> 仓库里的完整论证见 `docs/01-requirements.md` ~ `docs/05-retrospective.md`，运行材料见 `examples/`。
 
 ---
 
 ## 题号与交付
 
 - **题号**：第 1 题 · 素材审核与发布排期 Agent
-- **仓库**：https://github.com/a805026135/content-schedule-agent （私有，需先授权评审账号）
+- **仓库**：https://github.com/a805026135/content-schedule-agent （公开，可直接查看）
 - **最终 commit SHA**：`main` 分支 tip —— 提交表单时填 `git rev-parse origin/main` 的输出。
   （刻意不把 SHA 硬编码进仓库文件：写在文件里的 SHA 必然早于包含它的那次提交，
   硬编码只会让文档与 tip 永远差一个提交。）
