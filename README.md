@@ -23,12 +23,16 @@ cp .env.example .env          # 可选：填入 DEEPSEEK_API_KEY 以使用真实
 
 ### 没有 Key 时怎么用
 
-`pytest` 的 42 个用例**完全不需要 Key**。CLI 若要离线运行，必须显式给出动作脚本
+`pytest` 的 43 个用例**完全不需要 Key**。CLI 若要离线运行，必须显式给出动作脚本
 （离线替身本身不能替模型做决定，所以不存在"什么都不传也能跑"的模式）：
 
 ```bash
 .venv/Scripts/python.exe -m src.cli --material M01 --request-id REQ-MOCK \
     --mock-script examples/mock/mock_script_example.json
+
+# 单独重放某一条路径（每个用例目录都自带 mock_script.json，自包含）
+.venv/Scripts/python.exe -m src.cli --material M01 --request-id REQ-M01 \
+    --mock-script examples/mock/case04_slot_conflict/mock_script.json
 ```
 
 输出的 `_meta.provider` 会写明是 `ScriptedMockLLMClient` / `model=mock:scripted`，
@@ -51,7 +55,7 @@ cp .env.example .env          # 可选：填入 DEEPSEEK_API_KEY 以使用真实
 想跳过文档直接看行为，两条命令：
 
 ```bash
-.venv/Scripts/python.exe -m pytest                                   # 42 passed
+.venv/Scripts/python.exe -m pytest                                   # 43 passed
 .venv/Scripts/python.exe scripts/run_examples.py                      # 重新生成全部验证材料
 ```
 
@@ -63,11 +67,17 @@ cp .env.example .env          # 可选：填入 DEEPSEEK_API_KEY 以使用真实
 |---|---|
 | `0` | 任务完成 |
 | `2` | 达到步数或工具调用上限，属于**明确的未完成状态** |
-| `3` | 模型连续多次无法给出合规动作 |
+| `3` | 模型连续多次无法给出合规动作（**决策失败**） |
+| `4` | 模型服务不可用：网络不可达 / 鉴权失败 / 限流（**环境问题，不是决策问题**） |
 
 ```bash
-.venv/Scripts/python.exe -m src.cli --material M01 --max-steps 2 ; echo $?   # => 2
+# 不依赖网络即可复现「步数超限 → 退出码 2」
+.venv/Scripts/python.exe -m src.cli --material M01 --request-id REQ-M01 --max-steps 2 \
+    --mock-script examples/mock/case07_step_budget/mock_script.json ; echo $?   # => 2
 ```
+
+`3` 与 `4` 分开是有意的：一次网络抖动若被当成"模型给不出合规动作"，
+等于把环境问题记到了模型的决策能力账上。
 
 "未完成 ≠ 假装成功"因此是可自动验证的，不依赖人工读文字判断。
 
@@ -103,7 +113,7 @@ content-schedule-agent/
 │   │   └── state.py              State 与 trace 记录的 schema
 │   └── tools/
 │       └── schedule_tools.py     四个确定性工具 + 幂等写 + 故障注入
-├── tests/                        42 个用例
+├── tests/                        43 个用例
 ├── examples/
 │   ├── real_llm/                 真实模型跑出来的六组 + 超限用例（决策能力的证据）
 │   └── mock/                     离线脚本跑出来的七组，零配置复现（流程的证据）

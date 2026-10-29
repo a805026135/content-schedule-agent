@@ -76,6 +76,16 @@ class LLMDecisionError(RuntimeError):
     """
 
 
+class LLMUnavailableError(RuntimeError):
+    """模型服务不可用：网络不可达、鉴权失败、限流、超时等。
+
+    与 LLMDecisionError 刻意分开：后者是「模型说话了但说的不合规」，
+    前者是「根本没说上话」。两者的处置方式不同 ——
+    后者是决策失败，前者应当被如实报成"环境/服务问题"，
+    绝不能被当成一次空返回去走格式修复重试，那样只会把网络故障伪装成模型故障。
+    """
+
+
 @runtime_checkable
 class LLMClient(Protocol):
     def decide(
@@ -194,7 +204,15 @@ class DeepSeekLLMClient:
                 {"role": "system", "content": system_prompt + contract + repair_note}
             ] + list(conversation)
 
-            raw = self._raw_completion(messages)
+            try:
+                raw = self._raw_completion(messages)
+            except LLMUnavailableError:
+                raise
+            except Exception as exc:  # SDK 侧的传输/鉴权/限流异常
+                raise LLMUnavailableError(
+                    f"调用模型服务失败（{type(exc).__name__}）：{exc}。"
+                    "这不是模型决策失败，而是服务不可达或不可用的环境问题。"
+                ) from exc
             if raw is None:
                 last_problem = "模型返回空内容"
                 logger.warning("第 %s 次决策：模型返回空内容，准备重试", attempt)

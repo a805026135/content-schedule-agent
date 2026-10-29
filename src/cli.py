@@ -5,8 +5,10 @@
 - 0 = 任务完成
 - 2 = 达到步数/工具调用上限，属于明确的未完成状态
 - 3 = 模型决策失败（连续多次无法给出合规动作）
+- 4 = 模型服务不可用（网络不可达 / 鉴权失败 / 限流），属于环境问题而非决策问题
 
 这让"未完成 ≠ 假装成功"这条要求变得机器可验证，而不是靠评审读文字判断。
+4 与 3 分开的意义：网络故障不该被算到模型的决策能力头上。
 
 用法示例见 README.md 与 examples/README.md。
 """
@@ -21,13 +23,20 @@ from pathlib import Path
 from typing import Any, Optional
 
 from .agent.graph import STATUS_DECISION_FAILED, STATUS_EXCEEDED, build_agent, state_to_json
-from .agent.llm import LLMClient, LLMDecisionError, ScriptedMockLLMClient, build_llm_client
+from .agent.llm import (
+    LLMClient,
+    LLMDecisionError,
+    LLMUnavailableError,
+    ScriptedMockLLMClient,
+    build_llm_client,
+)
 from .config import FAIL_INJECTION_TARGETS, Settings, load_settings
 from .tools.schedule_tools import ScheduleTools
 
 EXIT_OK = 0
 EXIT_UNFINISHED = 2
 EXIT_MODEL_FAILED = 3
+EXIT_MODEL_UNAVAILABLE = 4
 EXIT_OTHER = 1
 
 
@@ -112,6 +121,14 @@ def main(argv: Optional[list[str]] = None) -> int:
             material_id=args.material,
             user_requirement=args.requirement,
         )
+    except LLMUnavailableError as exc:
+        print(
+            f"[模型服务不可用] {exc}\n"
+            "提示：这属于环境问题，不是模型决策失败。可检查 DEEPSEEK_API_KEY 与网络，\n"
+            "或改用离线脚本复现流程：python scripts/run_examples.py --provider mock",
+            file=sys.stderr,
+        )
+        return EXIT_MODEL_UNAVAILABLE
     except LLMDecisionError as exc:
         print(f"[模型决策失败] {exc}", file=sys.stderr)
         return EXIT_MODEL_FAILED

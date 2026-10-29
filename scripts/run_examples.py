@@ -283,6 +283,11 @@ def main() -> int:
                     print(f"[跳过] {case['dir']}：mock 模式未提供对应脚本")
                     state = None
                     break
+                # 把脚本一并落盘：这样每个用例目录都是自包含的，
+                # 评审可以只拿这一个文件就把该路径单独重放出来。
+                (target_dir / "mock_script.json").write_text(
+                    json.dumps(script, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
                 llm = ScriptedMockLLMClient([dict(x) for x in script])
             else:
                 from src.agent.llm import build_llm_client

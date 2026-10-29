@@ -1,0 +1,45 @@
+[
+  {
+    "rationale": "先读取素材元数据，确认必填字段是否齐全",
+    "action": "fetch_material",
+    "action_input": {
+      "material_id": "M03"
+    }
+  },
+  {
+    "rationale": "素材缺少 review_doc_ids 且含绝对化宣称，需先按规则检查严重程度",
+    "action": "check_rules",
+    "action_input": {
+      "material_id": "M03"
+    }
+  },
+  {
+    "rationale": "规则结论为 risk（非 block），可继续排期，但需确认用户要求的 16:00 是否可用",
+    "action": "query_slots",
+    "action_input": {}
+  },
+  {
+    "rationale": "16:00 可用，按用户要求时段保存草稿并标注待确认",
+    "action": "save_draft",
+    "action_input": {
+      "request_id": "REQ-M03",
+      "material_id": "M03",
+      "slot": "16:00",
+      "note": "命中 risk/warn，需法务复核与补件"
+    }
+  },
+  {
+    "rationale": "草稿已保存，风险项列入待确认",
+    "action": "finish",
+    "action_input": {
+      "answer": "审核结论为 risk（未阻断）：缺归档编号（warn）、含绝对化宣称（risk）。已按 16:00 保存草稿 DR-REQ-M03，未发布",
+      "audit_status": "risky",
+      "suggested_slot": "16:00",
+      "pending_confirmations": [
+        "补充审核归档编号 review_doc_ids",
+        "法务复核绝对化宣称"
+      ],
+      "draft_status": "saved"
+    }
+  }
+]

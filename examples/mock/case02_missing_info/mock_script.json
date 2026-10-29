@@ -1,0 +1,40 @@
+[
+  {
+    "rationale": "先读取素材元数据，确认必填字段是否齐全",
+    "action": "fetch_material",
+    "action_input": {
+      "material_id": "M02"
+    }
+  },
+  {
+    "rationale": "素材缺少必填字段 requested_slot，不能自行编造，需向用户索取",
+    "action": "request_clarification",
+    "action_input": {
+      "question": "素材 M02 缺少必填字段「期望发布时段」，请确认希望投放的时段"
+    }
+  },
+  {
+    "rationale": "等待用户回复期间，先完成规则检查以确认素材是否可排期",
+    "action": "check_rules",
+    "action_input": {
+      "material_id": "M02"
+    }
+  },
+  {
+    "rationale": "规则通过，先查询可用时段，以便给用户可选项",
+    "action": "query_slots",
+    "action_input": {}
+  },
+  {
+    "rationale": "用户仍未给出期望时段，不擅自排期，据实收尾",
+    "action": "finish",
+    "action_input": {
+      "answer": "素材 M02 规则检查通过，但缺失必填字段「期望发布时段」，已向用户提出确认，暂不保存草稿",
+      "audit_status": "pending_info",
+      "pending_confirmations": [
+        "请确认素材 M02 的期望发布时段（可选 15:00 / 16:00 / 19:00 / 21:00）"
+      ],
+      "draft_status": "not_saved"
+    }
+  }
+]

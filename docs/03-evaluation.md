@@ -3,7 +3,7 @@
 > 本文件回答的是**"凭什么说它有效"**。
 > 所有记录都可以在 `examples/` 下逐条核对，评估文档里的每一个结论都指向具体文件。
 >
-> 生成时间：2026-10-28 · 模型：`deepseek-flash`（非思考模式，`temperature=0`）
+> 生成时间：2026-10-29（末次复核）· 模型：`deepseek-flash`（非思考模式，`temperature=0`）
 > · LangGraph 1.2.17 · Python 3.13.12
 
 ---
@@ -12,16 +12,16 @@
 
 ```
 $ .venv/Scripts/python.exe -m pytest
-42 passed in 0.87s
+43 passed in 0.47s
 ```
 
 | 文件 | 数量 | 覆盖什么 | 是否需要 API Key |
 |---|---|---|---|
 | `tests/test_tools.py` | 29 | 工具层的确定性行为、幂等、冲突时段、故障注入、关键缺陷防护 | 否 |
-| `tests/test_decision_paths.py` | 13 | 决策路径差异、trace 结构、预算边界、虚报纠正 | 否 |
-| **合计** | **42** | | **全部不需要 Key** |
+| `tests/test_decision_paths.py` | 14 | 决策路径差异、trace 结构、预算边界、虚报纠正、服务故障不被误判为决策失败 | 否 |
+| **合计** | **43** | | **全部不需要 Key** |
 
-全部 42 个用例在**没有 API Key** 的机器上也能通过，因为它们验证的是编排与工具，
+全部 43 个用例在**没有 API Key** 的机器上也能通过，因为它们验证的是编排与工具，
 不验证模型能力。模型能力的证据单独放在 `examples/real_llm/`。
 
 ---
@@ -145,6 +145,7 @@ $ .venv/Scripts/python.exe -m pytest
 | F3 | 重复提交被判 `IDEMPOTENCY_CONFLICT` | 幂等指纹包含模型生成的自由文本 `note` | 指纹只取 `material_id + slot + confirmed` | `test_repeated_same_request_produces_one_draft` |
 | F4 | pytest 全量报 `PermissionError: WinError 5` | sandbox 下无法写系统 temp / 无法清理 basetemp | 改用项目内 `isolated_dir` fixture | 全部用例自带即可体现 |
 | F5 | venv 里 `No module named pip` | 沙箱把 `pip` 目录改名成 `~ip` | 改回目录名；本项目不再升级 pip | - |
+| F6 | 模型服务不可达时 CLI 抛 40 行 traceback 并以退出码 `1` 结束 | SDK 的传输异常未被分类，既不是 `LLMDecisionError` 也不是正常返回 | 新增 `LLMUnavailableError` 与退出码 `4`，与"决策失败（3）"分开报 | `test_model_unavailable_is_not_reported_as_decision_failure` |
 
 ---
 

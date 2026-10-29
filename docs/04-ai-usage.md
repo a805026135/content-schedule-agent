@@ -77,8 +77,8 @@ AI 初稿把整个 `action_input` 做指纹，包括模型生成的自由文本 
 | 未完成状态 | `--max-steps 2`，检查退出码 | `MAX_STEPS_EXCEEDED`，退出码 `2` |
 | 幂等 | 同 request_id 连跑两次，比对 `draft_id` 与 `total_drafts` | 同一草稿，总数 1 |
 | 越权发布不可能 | 断言工具注册表 + 文本扫描 | 无 publish 入口 |
-| 全部测试 | `pytest` | 42 passed |
-| 离线可复现 | 移除 Key 后重跑测试 | 依然 42 passed；`examples/mock/` 无需 Key 即可重新生成 |
+| 全部测试 | `pytest` | 43 passed |
+| 离线可复现 | 移除 Key 后重跑测试 | 依然 43 passed；`examples/mock/` 无需 Key 即可重新生成 |
 
 ---
 

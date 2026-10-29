@@ -273,3 +273,27 @@ def test_duplicate_submission_creates_one_draft(isolated_dir):
     assert first["draft_id"] == second["draft_id"] == "DR-REQ-P1"
     assert second["total_drafts"] == 1
     assert second["duplicate"] is True
+
+
+def test_model_unavailable_is_not_reported_as_decision_failure():
+    """网络/鉴权故障必须报成「服务不可用」，不能被算到模型的决策能力头上。
+
+    如果这里退化成"空返回 → 走格式修复重试"，一次网络抖动就会被伪装成
+    "模型连续 N 次给不出合规动作"，把环境问题记到模型账上。
+    """
+    from src.agent.llm import DeepSeekLLMClient, LLMUnavailableError
+
+    settings = Settings(deepseek_api_key="sk-test-not-a-real-key")
+    client = DeepSeekLLMClient(settings)
+
+    def _boom(_messages):
+        raise ConnectionError("Connection error.")
+
+    client._raw_completion = _boom  # type: ignore[method-assign]
+
+    with pytest.raises(LLMUnavailableError, match="服务不可达或不可用"):
+        client.decide(
+            system_prompt="sys",
+            conversation=[{"role": "user", "content": "hi"}],
+            allowed_actions=["finish"],
+        )

@@ -250,7 +250,7 @@ Agent 场景也不例外。
 | `src/agent/graph.py` ReAct 状态机 | 已实现 | 双预算防线、`next_action` 回填、保存状态以工具为准 |
 | `src/agent/prompts.py` 提示词 | 已实现 | 工具签名由代码生成注入 |
 | `src/cli.py` 命令行入口 | 已实现 | 退出码 0/2/3 |
-| `tests/` 测试 | 已实现 | 42 个用例，全部无需 Key |
+| `tests/` 测试 | 已实现 | 43 个用例，全部无需 Key |
 | `examples/` 执行记录 | 已实现 | `real_llm/` 7 组、`mock/` 2 组 + 样例脚本 |
 | `scripts/` | 已实现 | 接入自检、决策探针、示例一键生成 |
 | LangGraph `interrupt()` 真人审批闸门 | **未实现** | 「待确认」目前是记录 + 措辞约束，不是阻塞式闸门，见 `05-retrospective.md` |
