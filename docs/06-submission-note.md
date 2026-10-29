@@ -9,10 +9,15 @@
 ## 题号与交付
 
 - **题号**：第 1 题 · 素材审核与发布排期 Agent
+- **仓库**：https://github.com/a805026135/content-schedule-agent （私有，已授权评审账号）
+- **最终 commit SHA**：`be690108c66b1146daa3fd12e9d92ada9ef78b17`
 - **运行方式**：CLI
 - **模型**：`deepseek-flash`（DeepSeek-V4.1-Flash-1017，非思考模式，`temperature=0`）
 - **编排**：LangGraph `1.2.17`，手写 `StateGraph`（不使用 `prebuilt.create_react_agent`）
 - **实际用时**：约 3.5 小时（超出建议的 3 小时，超出部分主要在业界调研与故障排查）
+
+> 注：仓库里的 `.env` 不入库（`.gitignore` 已排除），评审无需配置任何密钥即可跑测试；
+> 若要复现 `examples/real_llm/` 下的真实模型记录，需要自备 DeepSeek Key。
 
 三条命令即可复现：
 
