@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "note": "已有排期为合成数据。与真实发布系统无关，本仓库不提供任何发布能力。",
+  "slots": [
+    { "slot": "15:00", "status": "free" },
+    { "slot": "16:00", "status": "free" },
+    { "slot": "18:00", "status": "occupied", "occupant": "M90", "note": "主推大片已排" },
+    { "slot": "19:00", "status": "free" },
+    { "slot": "20:00", "status": "restricted", "note": "品牌直播时段，不接受常规素材" },
+    { "slot": "21:00", "status": "free" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "REQ-DUP": {
+    "draft_id": "DR-REQ-DUP",
+    "request_id": "REQ-DUP",
+    "fingerprint": "0d905c164930a55a4d4958ef5511b8aea7077e66e0b90408aa7e2bf5728abd3e",
+    "slot": "15:00",
+    "material_id": "M04",
+    "confirmed": false,
+    "note": "",
+    "status": "draft"
+  }
+}

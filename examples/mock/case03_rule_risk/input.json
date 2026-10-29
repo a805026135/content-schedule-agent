@@ -1,0 +1,8 @@
+{
+  "request_id": "REQ-M03",
+  "material_id": "M03",
+  "requirement": "素材 M03，请审核并排期",
+  "fail_injection": "none",
+  "max_steps": null,
+  "description": "规则风险：命中 risk + warn，不阻断但须待确认"
+}

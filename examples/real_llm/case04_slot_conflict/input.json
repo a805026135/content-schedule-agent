@@ -1,0 +1,8 @@
+{
+  "request_id": "REQ-M01",
+  "material_id": "M01",
+  "requirement": "素材 M01，用户要求 18:00 发布",
+  "fail_injection": "none",
+  "max_steps": null,
+  "description": "时段冲突：18:00 已占用，需建议替代时段并标记待确认"
+}

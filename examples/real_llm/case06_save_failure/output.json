@@ -1,0 +1,94 @@
+{
+  "task_status": "done",
+  "audit_status": "passed",
+  "risk_reasons": [],
+  "requested_slot": "15:00",
+  "suggested_slot": "15:00",
+  "pending_confirmations": [
+    "草稿尚未保存成功（存储 503），需重试或人工补录",
+    "草稿保存后需用户确认是否按 15:00 正式排期"
+  ],
+  "draft_status": "not_saved",
+  "draft_id": null,
+  "duplicate": null,
+  "total_drafts": null,
+  "failures": [
+    {
+      "stage": "save_draft",
+      "reason": "TOOL_UNAVAILABLE: 草稿存储写入失败（故障注入）：storage 返回 503，草稿未保存"
+    },
+    {
+      "stage": "save_draft",
+      "reason": "TOOL_UNAVAILABLE: 草稿存储写入失败（故障注入）：storage 返回 503，草稿未保存"
+    }
+  ],
+  "trace": [
+    {
+      "step": 1,
+      "action": "fetch_material",
+      "action_input": {
+        "material_id": "M04"
+      },
+      "rationale": "先读取素材 M04 的元数据，确认必填字段是否齐全，再决定后续审核与排期动作。",
+      "observation_summary": "工具 fetch_material 执行成功：{\"material_id\": \"M04\", \"title\": \"门店探店花絮\", \"platform\": \"xiaohongshu\", \"content_type\": \"short_video\", \"duration_sec\": 40, \"requested_slot\": \"15:00\", \"owner\": \"content-team\", \"tags\": [\"探店\"], \"copyright\": {\"music\": \"licensed\", \"portrait\": \"authorized\"}, \"claims\": [], \"review_doc_ids\": [\"RV-2026-1014\"], \"missing_fields\": [], \"field_complete\": true}",
+      "ok": true,
+      "error_code": null,
+      "next_action": "check_rules"
+    },
+    {
+      "step": 2,
+      "action": "check_rules",
+      "action_input": {
+        "material_id": "M04"
+      },
+      "rationale": "素材元数据完整，用户要求 15:00 排期，下一步按审核规则检查 M04 是否存在 block/risk 问题。",
+      "observation_summary": "工具 check_rules 执行成功：{\"material_id\": \"M04\", \"severity\": \"pass\", \"blocked\": false, \"hits\": [], \"note\": \"规则结论仅供参考，是否阻断/是否请求确认由你（模型）决定\"}",
+      "ok": true,
+      "error_code": null,
+      "next_action": "query_slots"
+    },
+    {
+      "step": 3,
+      "action": "query_slots",
+      "action_input": {},
+      "rationale": "审核通过，用户要求 15:00 排期，需查询排期表确认该时段是否可用。",
+      "observation_summary": "工具 query_slots 执行成功：{\"date\": \"2026-10-30\", \"timezone\": \"Asia/Shanghai\", \"available\": [\"15:00\", \"16:00\", \"19:00\", \"21:00\"], \"occupied\": [{\"slot\": \"18:00\", \"occupant\": \"M90\", \"note\": \"主推大片已排\"}], \"restricted\": [{\"slot\": \"20:00\", \"note\": \"品牌直播时段，不接受常规素材\"}]}",
+      "ok": true,
+      "error_code": null,
+      "next_action": "save_draft"
+    },
+    {
+      "step": 4,
+      "action": "save_draft",
+      "action_input": {
+        "request_id": "REQ-M04",
+        "material_id": "M04",
+        "slot": "15:00",
+        "note": "按用户要求时段 15:00 排期；审核规则通过；草稿待用户确认"
+      },
+      "rationale": "用户要求的 15:00 在可用列表中，审核通过，直接按用户要求时段保存草稿（未确认，confirmed 不填 true）。",
+      "observation_summary": "工具 save_draft 执行失败：{\"error\": \"TOOL_UNAVAILABLE\", \"message\": \"草稿存储写入失败（故障注入）：storage 返回 503，草稿未保存\"}",
+      "ok": false,
+      "error_code": "TOOL_UNAVAILABLE",
+      "next_action": "save_draft"
+    },
+    {
+      "step": 5,
+      "action": "save_draft",
+      "action_input": {
+        "request_id": "REQ-M04",
+        "material_id": "M04",
+        "slot": "15:00",
+        "note": "按用户要求时段 15:00 排期；审核规则通过；草稿待用户确认"
+      },
+      "rationale": "草稿保存工具返回 503 失败，重试一次以确认是否为瞬时故障。",
+      "observation_summary": "工具 save_draft 执行失败：{\"error\": \"TOOL_UNAVAILABLE\", \"message\": \"草稿存储写入失败（故障注入）：storage 返回 503，草稿未保存\"}",
+      "ok": false,
+      "error_code": "TOOL_UNAVAILABLE",
+      "next_action": "finish"
+    }
+  ],
+  "final_answer": "素材 M04（门店探店花絮，小红书短视频，40 秒）元数据完整，审核规则检查结果为 pass，无命中规则。用户要求的 15:00 时段在 2026-10-30 排期表中为可用（当日占用 18:00、受限 20:00，均不影响）。但保存草稿的存储服务连续两次返回 503（TOOL_UNAVAILABLE），草稿未能保存，本系统也无发布能力，内容未上线。建议稍后重试保存草稿，或由人工在排期系统中按 15:00 建草稿。",
+  "step_count": 6,
+  "tool_call_count": 5
+}

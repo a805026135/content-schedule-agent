@@ -1,0 +1,8 @@
+{
+  "request_id": "REQ-DUP",
+  "material_id": "M04",
+  "requirement": "素材 M04，请按要求的时段做发布排期",
+  "fail_injection": "none",
+  "max_steps": null,
+  "description": "重复提交：同一 request_id 连续两次，只能产生一份草稿"
+}

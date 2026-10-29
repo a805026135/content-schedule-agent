@@ -1,0 +1,8 @@
+{
+  "request_id": "REQ-M01",
+  "material_id": "M01",
+  "requirement": "素材 M01，请反复尝试直到成功",
+  "fail_injection": "none",
+  "max_steps": 2,
+  "description": "步数上限：必须返回明确的未完成状态"
+}

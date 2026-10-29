@@ -1,0 +1,15 @@
+# 核心依赖刻意保持精简：只用 4 个运行时包 + pytest
+# - langgraph：图编排（State / 条件边 / 递归上限）
+# - pydantic：模型动作输出的结构化校验
+# - openai：官方 SDK，用于访问 DeepSeek 的 OpenAI 兼容接口
+# - python-dotenv：读取 .env，避免把 key 写进代码
+# langchain-core 由 langgraph 间接引入，不单独声明
+
+# 版本锁定说明：
+# langgraph 1.2.x 为当前稳定线；1.0.4~1.0.10 存在 CVE-2026-28277，请勿降级
+langgraph==1.2.17
+pydantic>=2.7,<3
+openai>=1.40,<2
+python-dotenv>=1.0
+
+pytest>=8.0

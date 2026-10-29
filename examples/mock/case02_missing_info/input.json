@@ -1,0 +1,8 @@
+{
+  "request_id": "REQ-M02",
+  "material_id": "M02",
+  "requirement": "素材 M02，请做发布排期",
+  "fail_injection": "none",
+  "max_steps": null,
+  "description": "素材信息缺失：未提供期望发布时间"
+}

@@ -1,0 +1,12 @@
+{
+  "REQ-M04": {
+    "draft_id": "DR-REQ-M04",
+    "request_id": "REQ-M04",
+    "fingerprint": "0d905c164930a55a4d4958ef5511b8aea7077e66e0b90408aa7e2bf5728abd3e",
+    "slot": "15:00",
+    "material_id": "M04",
+    "confirmed": false,
+    "note": "",
+    "status": "draft"
+  }
+}

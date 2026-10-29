@@ -1,0 +1,52 @@
+{
+  "rule_version": "v1-2026-10",
+  "note": "规则为数据驱动，工具层只实现一个极小的条件求值器（eq / non_empty / contains_none_of），新增规则不需要改代码。",
+
+  "required_fields": [
+    "title",
+    "platform",
+    "duration_sec",
+    "requested_slot",
+    "copyright.music",
+    "copyright.portrait",
+    "review_doc_ids"
+  ],
+
+  "rules": [
+    {
+      "rule_id": "R01",
+      "name": "背景音乐必须为已授权素材",
+      "severity": "block",
+      "field": "copyright.music",
+      "op": "eq",
+      "value": "licensed",
+      "message": "背景音乐未取得授权，禁止进入排期"
+    },
+    {
+      "rule_id": "R02",
+      "name": "出镜人物须完成肖像授权",
+      "severity": "block",
+      "field": "copyright.portrait",
+      "op": "eq",
+      "value": "authorized",
+      "message": "肖像授权缺失，禁止进入排期"
+    },
+    {
+      "rule_id": "R03",
+      "name": "须附有审核归档文档",
+      "severity": "warn",
+      "field": "review_doc_ids",
+      "op": "non_empty",
+      "message": "缺少审核归档编号，需补件后确认"
+    },
+    {
+      "rule_id": "R04",
+      "name": "禁止无依据的绝对化宣称",
+      "severity": "risk",
+      "field": "claims",
+      "op": "contains_none_of",
+      "value": ["最强", "最好", "第一", "唯一", "国家级", "根治"],
+      "message": "文案含绝对化宣称，需法务复核"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "REQ-M03": {
+    "draft_id": "DR-REQ-M03",
+    "request_id": "REQ-M03",
+    "fingerprint": "74d4eb307b1492b3b537a5f4cb2731b38f4a569be41579509b952805b41c0d72",
+    "slot": "16:00",
+    "material_id": "M03",
+    "confirmed": false,
+    "note": "待确认：缺少审核归档编号(review_doc_ids)；文案含绝对化宣称“清洁力行业最强”需法务复核",
+    "status": "draft"
+  }
+}

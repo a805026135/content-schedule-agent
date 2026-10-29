@@ -1,0 +1,12 @@
+{
+  "REQ-M01": {
+    "draft_id": "DR-REQ-M01",
+    "request_id": "REQ-M01",
+    "fingerprint": "08b31ca9593e65268047c15eb06cb8881b38b8186c8eeda6535b752f474d21ba",
+    "slot": "19:00",
+    "material_id": "M01",
+    "confirmed": false,
+    "note": "用户原要求 18:00，但该时段已被 M90（主推大片）占用；建议改为 19:00，待用户确认",
+    "status": "draft"
+  }
+}

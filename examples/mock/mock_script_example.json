@@ -1,0 +1,37 @@
+[
+  {
+    "rationale": "先读取素材元数据，确认必填字段是否齐全",
+    "action": "fetch_material",
+    "action_input": { "material_id": "M01" }
+  },
+  {
+    "rationale": "元数据完整，按审核规则检查是否存在 block/risk/warn 命中",
+    "action": "check_rules",
+    "action_input": { "material_id": "M01" }
+  },
+  {
+    "rationale": "规则通过，需确认用户要求的 18:00 是否可用",
+    "action": "query_slots",
+    "action_input": {}
+  },
+  {
+    "rationale": "18:00 已被 M90 占用，改用空闲的 19:00 作为建议时段并保存草稿",
+    "action": "save_draft",
+    "action_input": {
+      "request_id": "REQ-MOCK",
+      "material_id": "M01",
+      "slot": "19:00"
+    }
+  },
+  {
+    "rationale": "建议时段已保存为草稿，改期仍需用户确认，交回给用户处理",
+    "action": "finish",
+    "action_input": {
+      "answer": "素材 M01 字段完整、规则通过。用户要求的 18:00 已被 M90 占用，建议改到 19:00，已保存草稿 DR-REQ-MOCK（状态 draft，未发布）。是否接受改期请用户确认。",
+      "audit_status": "pending_info",
+      "suggested_slot": "19:00",
+      "pending_confirmations": ["是否接受改期至 19:00"],
+      "draft_status": "saved"
+    }
+  }
+]
