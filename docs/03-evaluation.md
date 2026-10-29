@@ -169,7 +169,7 @@ $ .venv/Scripts/python.exe -m pytest
 
 | 阶段 | 用时 |
 |---|---|
-| 需求拆解与选题 | ~25 min |
+| 需求拆解与方案取舍 | ~25 min |
 | 业界调研（OWASP / 幂等 / LangGraph / HITL / DeepSeek 文档） | ~35 min |
 | 数据与配置层 | ~20 min |
 | 工具层 | ~30 min |

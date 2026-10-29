@@ -104,7 +104,7 @@ CLI            src/cli.py                入参、退出码、把 trace 落成�
   凡是需要人工拍板的项，进 `pending_confirmations` 列表，`draft_status` 保持 `pending_confirm`。
 - **依据**：LangChain HITL 文档把 `respond` 定义为"人替代工具作答"，并**明确警告不可用它来拒绝有副作用的工具**，
   因为其返回值会被模型当成成功结果。我们对工具失败原样透传，不外敷一层"成功"。
-- **待办（可选加分）**：用 LangGraph 的 `interrupt()` + `MemorySaver` 实现真正的审批闸门，
+- **待办（可选）**：用 LangGraph 的 `interrupt()` + `MemorySaver` 实现真正的审批闸门，
   让 pending 状态可跨进程恢复。这属于"多了更好"，不在核心链路上。
 
 ### D6 · 双 trace：真实模型与 Mock 分开存放
@@ -142,7 +142,7 @@ action: "fetch_material"
 ```
 
 这不影响功能（动作本身是合理的），但会让 trace 里的「决策依据」看起来像模板填充，
-直接削弱 ReAct 真实性这条得分点。
+直接削弱 ReAct 的真实性。
 
 **改法**：把样例换成一个中间动作 `query_slots`，`rationale` 写成占位描述，
 并显式声明"样例仅用于说明 JSON 结构与字段位置，不是建议你执行它"。改后同一份探针的结果：

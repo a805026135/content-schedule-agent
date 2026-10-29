@@ -24,7 +24,7 @@
 三条命令即可复现：
 
 ```bash
-.venv/Scripts/python.exe -m pytest                 # 42 个用例，不需要任何 API Key
+.venv/Scripts/python.exe -m pytest                 # 43 个用例，不需要任何 API Key
 .venv/Scripts/python.exe -m src.cli --material M01 --request-id REQ-M01
 .venv/Scripts/python.exe scripts/run_examples.py     # 一键重生成全部验证材料
 ```
@@ -33,7 +33,7 @@
 
 ## 核心取舍：把"希望模型别做错"翻译成"做错了也改变不了结果"
 
-这道题的三个高分依据（冲突调整、确认边界、防重复）**全部可以用代码结构保证**，
+这道题的三个关键要求（冲突调整、确认边界、防重复）**全部可以用代码结构保证**，
 所以我没把它们写进提示词，而是做进架构：
 
 | 题目要求 | 我的做法 | 效果 |

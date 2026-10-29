@@ -17,9 +17,30 @@
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install -r requirements.txt   # macOS/Linux: .venv/bin/python
 cp .env.example .env          # 可选：填入 DEEPSEEK_API_KEY 以使用真实模型
-.venv/Scripts/python.exe -m pytest          # 42 个用例，无需任何 Key
+.venv/Scripts/python.exe -m pytest          # 43 个用例，无需任何 Key
 .venv/Scripts/python.exe -m src.cli --material M01 --request-id REQ-M01
 ```
+
+### 运行效果
+
+下面三张图由 `scripts/render_cli_shots.py` **真实执行** CLI / pytest 后渲染生成——
+图里每一行（包括退出码）都是真实输出，不是手画的示意图；
+跑一遍同一条命令即可得到同样的结果。
+
+第一次运行（离线脚本模式）：M01 想发 18:00，查询时段发现被占用，改建议 19:00，
+草稿已保存、留待人工确认：
+
+![第一次运行：时段冲突后改期](docs/assets/run-01-first.png)
+
+退出码 0 / 2 / 4 各自的触发方式（`2` = 超预算未完成；`4` = 服务不可用，
+用无效 Key 演示——网络不可达时同样报 4，两者都属于环境问题而非决策失败）：
+
+![退出码 0 / 2 / 4](docs/assets/run-02-exit-codes.png)
+
+43 个测试不依赖任何 Key；同一 `--request-id` 连跑两次得到同一份草稿
+（`duplicate` 从 `false` 变 `true`，`total_drafts` 恒为 1）：
+
+![测试与重复提交](docs/assets/run-03-tests-and-idempotency.png)
 
 ### 没有 Key 时怎么用
 
@@ -39,6 +60,8 @@ cp .env.example .env          # 可选：填入 DEEPSEEK_API_KEY 以使用真实
 **不会静默假装成真实模型**。更多说明见 `examples/README.md`。
 
 ---
+
+想先亲手跑一遍再看设计，照抄 `docs/07-quickstart.md`（三种运行模式 + 六个必验点命令 + 退出码复现 + 排障表）。
 
 ## 评审入口（建议按这个顺序看）
 
@@ -119,14 +142,14 @@ content-schedule-agent/
 │   └── mock/                     离线脚本跑出来的七组，零配置复现（流程的证据）
 ├── data/                         合成素材、规则、排期表
 ├── docs/                         01 ~ 06
-└── scripts/                      接入自检、决策探针、示例生成
+└── scripts/                      接入自检、决策探针、示例生成、运行截图渲染
 ```
 
 ---
 
 ## 一句话总结设计取向
 
-> 这道题的高分依据（冲突调整 / 确认边界 / 防重复）**全部可以用结构性手段保证**，
+> 冲突调整、确认边界、防重复这三条要求**全部可以用结构性手段保证**，
 > 所以本项目把它们做进代码而不是写进提示词：工具集里没有 `publish`、
 > `request_id` + 指纹做幂等、保存状态以工具结果为准。
 > 模型只负责它不可替代的那一部分 —— 根据观察选择下一步动作。
