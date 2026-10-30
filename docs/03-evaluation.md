@@ -12,7 +12,7 @@
 
 ```
 $ .venv/Scripts/python.exe -m pytest
-43 passed in 0.47s
+68 passed
 ```
 
 | 文件 | 数量 | 覆盖什么 | 是否需要 API Key |
@@ -21,7 +21,7 @@ $ .venv/Scripts/python.exe -m pytest
 | `tests/test_decision_paths.py` | 14 | 决策路径差异、trace 结构、预算边界、虚报纠正、服务故障不被误判为决策失败 | 否 |
 | **合计** | **43** | | **全部不需要 Key** |
 
-全部 43 个用例在**没有 API Key** 的机器上也能通过，因为它们验证的是编排与工具，
+全部 68 个用例在**没有 API Key** 的机器上也能通过，因为它们验证的是编排与工具，
 不验证模型能力。模型能力的证据单独放在 `examples/real_llm/`。
 
 ---

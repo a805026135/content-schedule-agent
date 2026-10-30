@@ -24,7 +24,7 @@
 三条命令即可复现：
 
 ```bash
-.venv/Scripts/python.exe -m pytest                 # 43 个用例，不需要任何 API Key
+.venv/Scripts/python.exe -m pytest                 # 68 个用例，不需要任何 API Key
 .venv/Scripts/python.exe -m src.cli --material M01 --request-id REQ-M01
 .venv/Scripts/python.exe scripts/run_examples.py     # 一键重生成全部验证材料
 ```
@@ -123,4 +123,4 @@ AI 参与了绝大部分代码初稿，但**设计决策、故障归因、修复
 5. 工具返回值必须回写进 `conversation`，否则 ReAct 会退化成串行调用
 
 失败用例（F1~F5，含"模型照抄提示词样例""八步预算全花在猜参数名"）如实记录在
-`docs/03-evaluation.md` 第 4 节 —— 它们比"43 passed"更能说明我实际做了什么。
+`docs/03-evaluation.md` 第 4 节 —— 它们比"68 passed"更能说明我实际做了什么。

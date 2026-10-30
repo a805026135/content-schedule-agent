@@ -286,11 +286,19 @@ class ReActAgent:
             claimed_answers += "（系统纠正：草稿实际未保存）"
 
         # ---- 防「越权发布」：文本层面的兜底扫描 ----
+        #
+        # 这里原本写成 `hits and not any_saved`，是一个真实的漏洞：模型若在成功保存
+        # 草稿之后再说"已发布"，就不会被标记 —— 而"发布了没有"与"草稿存了没有"
+        # 是两件事，前者恰恰是最需要拦的那件。本系统没有任何发布能力，因此**任何**
+        # 声称已发布的陈述都不可能由本链路产生，与草稿是否保存无关。
         hits = [w for w in _PUBLISH_WORDS if w in claimed_answers]
-        if hits and not any_saved:
+        if hits:
             failures.append({
                 "stage": "finalize",
-                "reason": f"最终答复出现发布类措辞 {hits}，但系统不具备发布能力，请人工复核",
+                "reason": (
+                    f"最终答复出现发布类措辞 {hits}：本系统不具备发布能力，"
+                    "该陈述无法由本链路产生，请人工复核"
+                ),
             })
 
         return {

@@ -17,7 +17,7 @@
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install -r requirements.txt   # macOS/Linux: .venv/bin/python
 cp .env.example .env          # 可选：填入 DEEPSEEK_API_KEY 以使用真实模型
-.venv/Scripts/python.exe -m pytest          # 43 个用例，无需任何 Key
+.venv/Scripts/python.exe -m pytest          # 68 个用例，无需任何 Key
 .venv/Scripts/python.exe -m src.cli --material M01 --request-id REQ-M01
 ```
 
@@ -37,14 +37,14 @@ cp .env.example .env          # 可选：填入 DEEPSEEK_API_KEY 以使用真实
 
 ![退出码 0 / 2 / 4](docs/assets/run-02-exit-codes.png)
 
-43 个测试不依赖任何 Key；同一 `--request-id` 连跑两次得到同一份草稿
+68 个测试不依赖任何 Key；同一 `--request-id` 连跑两次得到同一份草稿
 （`duplicate` 从 `false` 变 `true`，`total_drafts` 恒为 1）：
 
 ![测试与重复提交](docs/assets/run-03-tests-and-idempotency.png)
 
 ### 没有 Key 时怎么用
 
-`pytest` 的 43 个用例**完全不需要 Key**。CLI 若要离线运行，必须显式给出动作脚本
+`pytest` 的 68 个用例**完全不需要 Key**。CLI 若要离线运行，必须显式给出动作脚本
 （离线替身本身不能替模型做决定，所以不存在"什么都不传也能跑"的模式）：
 
 ```bash
@@ -125,7 +125,7 @@ flowchart TD
 想跳过文档直接看行为，两条命令：
 
 ```bash
-.venv/Scripts/python.exe -m pytest                                   # 43 passed
+.venv/Scripts/python.exe -m pytest                                   # 68 passed
 .venv/Scripts/python.exe scripts/run_examples.py                      # 重新生成全部验证材料
 ```
 
@@ -171,12 +171,13 @@ flowchart TD
 
 ## 测试在守什么
 
-43 个用例分两个文件，**都不需要 API Key**：
+68 个用例分三个文件，**都不需要 API Key**：
 
 | 文件 | 数量 | 验证对象 | 模型怎么来 |
 |---|---|---|---|
 | `tests/test_tools.py` | 29 | 工具层：没有模型参与时的确定性行为 | 不调用模型 |
 | `tests/test_decision_paths.py` | 14 | 编排层：路由、预算、纠正 | `ScriptedMockLLMClient` 脚本替身 |
+| `tests/test_generalization.py` | 25 | **防线的泛化性**：随机任务 × 对抗性模型 | `PolicyStub` 读观察决策替身 |
 
 刻意分开是有原因的：脚本替身只能证明**流程**正确，证明不了**模型会不会做决定**；
 所以两者互不充当对方的证据——模型能力的证据放在 `examples/real_llm/`，
@@ -204,6 +205,76 @@ flowchart TD
 | 两条差异化路径 | 4 | 同一套编排产出两条不同路径；trace 里有理由、有观察、有后续动作 |
 | 运行边界 | 3 | 步数 / 工具调用上限；自维护计数器先于 LangGraph 的 `recursion_limit` 生效 |
 | 关键缺陷防护 | 7 | 越权发布、虚报保存、隐瞒失败、幻觉工具、重复提交、**网络故障不得算到模型头上** |
+
+`tests/test_generalization.py`（24）—— 见下一节，它回答的是一个前两组回答不了的问题。
+
+---
+
+## 防线不只对我挑的那批题成立吗
+
+上面两组用例有一个共同的软肋：素材是 `data/` 下手工构造的 M01~M05，模型的回答是
+背好的脚本。**防线会不会只是恰好在这几道题上对好了答案？** 这是最自然也最致命的质疑。
+
+正面回应它，要同时切断两个依赖 —— 这正是 `tests/test_generalization.py` 做的事：
+
+| 断掉什么 | 做法 |
+|---|---|
+| 输入不是我挑的 | 固定种子随机合成数据集：素材 ID 是 `RX-000` 这种随机编号，字段缺失情况、时段占用/受限分布、规则命中情况全部随机，不属于 `examples/` 里任何一条已知路径 |
+| 模型不配合 | `PolicyStub` **真的读取工具返回的 observation** 再决定下一步，并提供 10 种人格（1 个正常参照 + 9 种刻意越界）：声称已发布、虚报保存、沉默改期、缺字段自己编、强占被占用时段、绕开人工审批写受保护时段、调用不存在的 publish 工具、写错参数名、无限绕圈 |
+
+12 个随机种子 × 10 种人格，断言同一组**结构性不变量**（INV-1 ~ INV-7）：能力上界、
+`draft_status` 严格等价于 trace 里是否真有成功保存、发布措辞必被记账、失败必被如实上报、
+预算达上限必返回明确未完成、落盘草稿的时段必须是工具核实过的可用时段、
+虚报保存必须被显式纠正并记账。
+
+还有一条 `test_random_dataset_reaches_every_decision_branch` 是对**生成器本身**的自检：
+它逐个断言"用户指定时段可用/不可用都出现过、排期表里三种状态都出现过、
+有触发 block 规则的样本也有干净样本"。没有它，一旦有人改了生成概率让每个种子都变成
+平凡样本，"改期""受保护时段"这些路径就再也不会被走到，而上面那批全绿的用例会假装
+它们仍然成立 —— 这等于整套证据自我解除防备。
+
+### 光有全绿还不够：这些用例自己也被验过
+
+一堆全绿的用例什么都证明不了 —— 除非能证明**拆掉防线它就红**。所以在"随便多少组随机
+任务都成立"这个表象之下，另有一份变异检验脚本逐条拆防线：
+
+```bash
+.venv/Scripts/python.exe runs/mutation_check.py
+```
+
+它分两组作伪：一组改 src 源代码，一组改 testfile 里的随机生成器（模拟"随机输入偷偷退化"）。
+每组临时改源码、跑完在这个 bash 工具里自动还原，报告每条拆改是否被对应用例抓住。
+
+| 拆掉什么 | 哪个用例变红 |
+|---|---|
+| 给注册表加上 `publish_material` | INV-1 `test_structural_invariants_hold_for_random_tasks` |
+| 让 `finalize` 相信模型自述的 `draft_status` | INV-2 / INV-7 同上 |
+| 去掉发布类措辞扫描 | `test_publish_wording_is_flagged_even_when_draft_was_saved` |
+| `save_draft` 失败不再记进 `failures` | INV-4 同上 |
+| 四个预算检查点全部拆掉（单拆任一个会被其余兜住，属冗余） | INV-5 同上 |
+| `save_draft` 不校验时段是否在排期表内 | INV-6 同上 |
+| 允许写入被占用 / 受保护的时段 | INV-6 同上 |
+| 同幂等键换内容也当作重放 | `test_idempotency_key_cannot_be_reused_for_different_content` |
+| **生成器退化**：排期表全是 free / `requested_slot` 恒为 None / 音乐恒已授权 / 字段恒齐全 | `test_random_dataset_reaches_every_decision_branch` |
+
+这份脚本本身不是交付物（放在 gitignore 的 `runs/` 下），但**它挖出来的问题是真的**：
+第一次跑它的时候，有三条变异漏网——说明当时"防线在随机任务上成立"这句话其实没被证明。
+
+1. **八个人格里没有一个会往工具明确说"不行"的时段写**，于是删掉占用/受限校验照样全绿
+   → 补了 `seize_occupied` / `seize_restricted` 两个人格；
+2. **虚报保存的防线只体现在 `failures` 记录上**，`draft_status` 字段本身是被 state 兜住的，
+   两者分离导致删掉纠正逻辑也不变红 → 补了 INV-7；
+3. 预算实际有 4 个检查点，只拆 1 个会被其余兜住（这是好事，说明有冗余），
+   必须把整条拆干净才会变红 → 脚本现在支持多重拆点，并标注预期是不是"被冗余兜住"。
+
+必须说清楚的边界：
+
+- 这组用例**不是**模型能力的证据。替身是代码写的策略，不代表真实 LLM；
+  真实模型的决策能力由 `examples/real_llm/` 下的 trace 证明，两者互不充当对方证据。
+- 「是否登记待用户确认」属于模型的诚实义务。本系统只能在 trace 里留痕、在文档里声明，
+  **无法结构性强制**（真正的强制需要 `interrupt()` 审批闸，本项目只做到草稿层）。
+  `test_silent_reschedule_is_visible_in_trace` 因此断言的是「可审计」而非「被阻止」——
+  把边界显式写出来，好过假装它已经被堵死。
 
 ### 四个完整用例
 
@@ -344,7 +415,7 @@ content-schedule-agent/
 │   │   └── state.py              State 与 trace 记录的 schema
 │   └── tools/
 │       └── schedule_tools.py     四个确定性工具 + 幂等写 + 故障注入
-├── tests/                        43 个用例（工具层 29 + 编排层 14），均无需 Key
+├── tests/                        68 个用例（工具层 29 + 编排层 14 + 泛化性 25），均无需 Key
 ├── examples/
 │   ├── real_llm/                 真实模型跑出来的六组 + 超限用例（决策能力的证据）
 │   └── mock/                     离线脚本跑出来的七组，零配置复现（流程的证据）

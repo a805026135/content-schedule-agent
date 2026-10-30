@@ -14,7 +14,7 @@ python -m venv .venv
 
 cp .env.example .env          # 想用真实模型就把 DEEPSEEK_API_KEY 填进去
 
-.venv/Scripts/python.exe -m pytest        # 43 passed，不需要任何 Key（pytest.ini 已含 -q，命令行别再加）
+.venv/Scripts/python.exe -m pytest        # 68 passed，不需要任何 Key（pytest.ini 已含 -q，命令行别再加）
 ```
 
 `.env` 已在 `.gitignore` 里，不会被提交。
