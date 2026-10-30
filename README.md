@@ -306,8 +306,21 @@ def test_step_budget_returns_explicit_unfinished_state(isolated_dir):
 ```
 
 页面会渲染：概览卡片（任务/草稿/审核状态、建议时段、是否重复）、最终答复、
-ReAct 轨迹（每一步的**理由 / 入参 / 观察 / 下一动作**）、待人工确认项、失败与纠正记录、
-以及本次实际走过的状态路径。
+ReAct 轨迹（每一步的**理由 / 入参 / 观察 / 下一动作**）、规则风险原因、待人工确认项、
+失败与纠正记录、以及本次实际走过的状态路径。
+
+下面两张图是 headless Chrome 打开 `viewer/index.html?sample=1` 的**真实截图**
+（页面渲染的就是那条真实运行输出，不是另外画的效果图）：
+
+![查看器上半部分：概览卡片与 ReAct 轨迹](docs/assets/viewer-01-overview.png)
+
+每一步的理由、入参、观察都原样取自运行结果的 trace，观察里的 JSON 被拆出来缩进排版；
+「下一动作」是编排层在收尾时回填的字段，不是前端推断出来的。
+
+![查看器下半部分：待确认项与本次走过的状态路径](docs/assets/viewer-02-trace.png)
+
+底部的状态路径按真实顺序展开 `prepare → decide → execute → …`，
+终点若是 `exceeded`（超预算未完成）会用另一种颜色标出。
 
 三点需要说明：
 
