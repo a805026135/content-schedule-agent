@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trace Viewer · 素材审核与发布排期 Agent</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#ffffff; --line:#e3e6eb; --text:#1f2430; --muted:#6b7280;
+    --ok:#1a7f4b; --ok-bg:#e8f5ee; --bad:#b42318; --bad-bg:#fdeceb;
+    --warn:#8a5a00; --warn-bg:#fdf3dc; --info:#1f4f8b; --info-bg:#eaf1fb;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Cascadia Code","Noto Sans Mono CJK SC",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:14px;line-height:1.65}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 64px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+  .sub code{background:#eceef2;padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:12px}
+
+  /* ---- 输入区 ---- */
+  .drop{border:1.5px dashed #c2c8d2;border-radius:10px;background:var(--panel);
+    padding:22px;text-align:center;transition:.15s}
+  .drop.over{border-color:#4a7ad6;background:var(--info-bg)}
+  .drop p{margin:0 0 10px;color:var(--muted);font-size:13px}
+  .btn{display:inline-block;border:1px solid var(--line);background:#fff;color:var(--text);
+    padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;margin:0 4px}
+  .btn:hover{border-color:#9aa4b2;background:#fafbfc}
+  .btn.primary{border-color:#4a7ad6;background:#4a7ad6;color:#fff}
+  .btn.primary:hover{background:#3c67b8}
+  details.paste{margin-top:12px}
+  details.paste summary{cursor:pointer;color:var(--muted);font-size:13px}
+  textarea{width:100%;height:120px;margin-top:8px;font-family:var(--mono);font-size:12px;
+    border:1px solid var(--line);border-radius:6px;padding:10px;resize:vertical}
+  .err{margin-top:12px;padding:10px 14px;border-radius:6px;background:var(--bad-bg);
+    color:var(--bad);font-size:13px;display:none}
+  .err.show{display:block}
+
+  /* ---- 概览卡 ---- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:10px;margin:18px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 13px}
+  .card .k{color:var(--muted);font-size:11.5px;letter-spacing:.02em;margin-bottom:3px}
+  .card .v{font-family:var(--mono);font-size:13.5px;word-break:break-all}
+  .tag{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11.5px;font-weight:600}
+  .t-ok{background:var(--ok-bg);color:var(--ok)}
+  .t-bad{background:var(--bad-bg);color:var(--bad)}
+  .t-warn{background:var(--warn-bg);color:var(--warn)}
+  .t-info{background:var(--info-bg);color:var(--info)}
+
+  h2{font-size:15px;margin:26px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+
+  /* ---- 终局答复 ---- */
+  .answer{white-space:pre-wrap;font-size:13.5px}
+
+  /* ---- 轨迹时间线 ---- */
+  .step{position:relative;padding:0 0 4px 30px;border-left:2px solid var(--line);margin:0}
+  .step:last-child{border-left-color:transparent}
+  .step::before{content:attr(data-i);position:absolute;left:-11px;top:12px;width:20px;height:20px;
+    background:#fff;border:2px solid #aab2bf;border-radius:50%;color:var(--muted);
+    font-size:11px;line-height:17px;text-align:center;font-family:var(--mono)}
+  .step.fail::before{border-color:var(--bad);color:var(--bad);background:var(--bad-bg)}
+  .step-body{margin:0 0 14px 4px}
+  .step-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .act{font-family:var(--mono);font-size:13px;font-weight:600}
+  .act-cn{color:var(--muted);font-size:12px}
+  .next{color:var(--muted);font-size:12px;font-family:var(--mono)}
+  .quote{margin:0 0 6px;padding:6px 10px;background:var(--info-bg);border-left:3px solid var(--info);
+    border-radius:0 4px 4px 0;color:#243b57;font-size:13px}
+  .quote::before{content:"理由 ";color:var(--info);font-size:11.5px;font-weight:600}
+  .obs{margin:0;padding:8px 10px;background:#f4f6f8;border-radius:5px;font-family:var(--mono);
+    font-size:12px;white-space:pre-wrap;word-break:break-all;color:#333a45}
+  .obs.bad{background:var(--bad-bg);color:var(--bad)}
+  .obs::before{content:"观察 ";color:var(--muted);font-weight:600}
+  .kv{margin:0 0 6px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .actarrow{color:#aab2bf;font-size:12px;font-family:var(--mono);margin-left:2px}
+
+  ul.plain{margin:4px 0 0;padding-left:18px}
+  ul.plain li{margin-bottom:4px}
+  .hidden{display:none}
+  footer{margin-top:34px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Trace Viewer</h1>
+  <div class="sub">
+    把 CLI 的运行结果（<code>--out result.json</code>）拖进来即可查看。
+    纯静态单文件、零依赖、不联网；<strong>不属于 Agent 运行链路</strong>，只用于阅读结果。
+  </div>
+
+  <div id="drop" class="drop">
+    <p>拖入 JSON 文件，或</p>
+    <button class="btn primary" id="pick">选择文件</button>
+    <button class="btn" id="sample">载入内置样例</button>
+    <input type="file" id="file" accept=".json,application/json" class="hidden">
+    <details class="paste">
+      <summary>或直接粘贴 JSON</summary>
+      <textarea id="raw" placeholder='{"task_status":"done", "trace":[...]}'></textarea>
+      <div style="margin-top:8px"><button class="btn" id="parse">解析</button></div>
+    </details>
+  </div>
+  <div id="err" class="err"></div>
+
+  <div id="out" class="hidden">
+    <h2>运行概览</h2>
+    <div class="cards" id="cards"></div>
+
+    <h2>最终答复</h2>
+    <div class="panel answer" id="answer"></div>
+
+    <h2>ReAct 轨迹</h2>
+    <div id="trace"></div>
+
+    <div id="risks-box">
+      <h2>规则风险原因</h2>
+      <div class="panel"><ul class="plain" id="risks"></ul></div>
+    </div>
+
+    <div id="confirms-box">
+      <h2>待人工确认项</h2>
+      <div class="panel"><ul class="plain" id="confirms"></ul></div>
+    </div>
+
+    <div id="failures-box">
+      <h2>失败与纠正记录</h2>
+      <div class="panel"><ul class="plain" id="failures"></ul></div>
+    </div>
+
+    <h2>本次走过的状态路径</h2>
+    <div class="panel" id="pathpane"></div>
+  </div>
+
+  <footer>
+    图中每一步的 <em>理由</em> 与 <em>观察</em> 均原样取自运行结果，查看器不做任何改写或补全；
+    轨迹里的「下一动作」由编排层在收尾时回填，不是前端推断出来的。
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* 内置样例：examples/real_llm/case04_slot_conflict 的真实运行结果（时段冲突 → 改期 → 待确认）。
+   该目录的 output.json 未落 request_id / material_id，这里从同目录 input.json 取真实值补回
+   （REQ-M01 / M01），CLI 用 --out 落盘时这两个字段本来就存在。其余字段逐字照抄。 */
+const SAMPLE = {
+  "request_id": "REQ-M01",
+  "material_id": "M01",
+  "task_status": "done",
+  "audit_status": "pending_info",
+  "requested_slot": "18:00",
+  "suggested_slot": "19:00",
+  "pending_confirmations": [
+    "用户原要求 18:00 已被 M90 占用，是否接受改为 19:00 发布",
+    "草稿 DR-REQ-M01 需用户确认后方可由人工执行发布"
+  ],
+  "draft_status": "saved",
+  "draft_id": "DR-REQ-M01",
+  "duplicate": false,
+  "total_drafts": 1,
+  "failures": [],
+  "step_count": 5,
+  "tool_call_count": 4,
+  "final_answer": "素材 M01（秋季新品 30 秒短片，抖音短视频，30 秒）元数据完整、审核规则检查通过（severity=pass，无命中规则）。用户要求的 18:00 在 2026-10-30 已被 M90（主推大片）占用，无法按原时段排期；已从可用时段中选取 19:00 作为建议，并保存为草稿 DR-REQ-M01（状态：draft，未发布，需用户确认后由人工执行发布）。若用户坚持 18:00，需另行协调 M90 的排期。",
+  "trace": [
+    {"step":1,"action":"fetch_material","action_input":{"material_id":"M01"},
+     "rationale":"先读取素材 M01 的元数据，确认必填字段是否齐全，再决定后续审核与排期动作。",
+     "observation_summary":"工具 fetch_material 执行成功：{\"title\": \"秋季新品 30 秒短片\", \"platform\": \"douyin\", \"requested_slot\": \"18:00\", \"missing_fields\": [], \"field_complete\": true}",
+     "ok":true,"error_code":null,"next_action":"check_rules"},
+    {"step":2,"action":"check_rules","action_input":{"material_id":"M01"},
+     "rationale":"素材元数据完整无缺失，下一步按审核规则检查 M01 是否存在 block/risk/warn 问题。",
+     "observation_summary":"工具 check_rules 执行成功：{\"severity\": \"pass\", \"blocked\": false, \"hits\": [], \"note\": \"规则结论仅供参考，是否阻断/是否请求确认由你（模型）决定\"}",
+     "ok":true,"error_code":null,"next_action":"query_slots"},
+    {"step":3,"action":"query_slots","action_input":{},
+     "rationale":"审核通过无风险，接下来查询排期表确认用户要求的 18:00 是否可用。",
+     "observation_summary":"工具 query_slots 执行成功：{\"date\": \"2026-10-30\", \"available\": [\"15:00\", \"16:00\", \"19:00\", \"21:00\"], \"occupied\": [{\"slot\": \"18:00\", \"occupant\": \"M90\"}], \"restricted\": [{\"slot\": \"20:00\"}]}",
+     "ok":true,"error_code":null,"next_action":"save_draft"},
+    {"step":4,"action":"save_draft",
+     "action_input":{"request_id":"REQ-M01","material_id":"M01","slot":"19:00","confirmed":false},
+     "rationale":"用户要求的 18:00 已被 M90 占用，需从可用时段中挑一个作为建议并保存为待确认草稿，不能擅自替用户改期。",
+     "observation_summary":"工具 save_draft 执行成功：{\"draft_id\": \"DR-REQ-M01\", \"duplicate\": false, \"total_drafts\": 1, \"status\": \"draft\", \"message\": \"已保存为草稿，尚未发布，需用户确认后才可由人工执行发布\"}",
+     "ok":true,"error_code":null,"next_action":"finish"}
+  ]
+};
+
+const CN = {
+  fetch_material:"读取素材", check_rules:"检查审核规则", query_slots:"查询可排时段",
+  save_draft:"保存草稿", request_clarification:"请求人工澄清", finish:"结束任务"
+};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+/** 状态值 -> 徽章样式 */
+function statusCls(v){
+  const s = String(v).toLowerCase();
+  if (["done","saved","pass","ok","available","true"].includes(s)) return "t-ok";
+  if (["not_saved","blocked","risk","risky"].includes(s)) return "t-warn";
+  if (s.includes("exceeded") || s.includes("failed") || s.includes("fail")) return "t-bad";
+  return "t-info";
+}
+
+/** 观察文本里有时是「前缀 + JSON」，拆开分别呈现，JSON 部分缩进排版 */
+function splitObservation(text){
+  const i = text.indexOf("{");
+  if (i < 0) return {head:text, json:null};
+  const head = text.slice(0, i);
+  try {
+    return {head, json: JSON.stringify(JSON.parse(text.slice(i)), null, 2)};
+  } catch (_) {
+    return {head, json:text.slice(i)};   // 解析不了就原样展示，绝不伪造格式化结果
+  }
+}
+
+function render(data){
+  if (typeof data !== "object" || data === null || !Array.isArray(data.trace)) {
+    throw new Error("不是本项目的运行输出：缺少 trace 字段。请用 `--out` 让 CLI 把结果落成 JSON 再打开。");
+  }
+
+  // ---- 概览 ----
+  const meta = data._meta || {};
+  const cards = [
+    ["素材 ID", data.material_id],
+    ["请求 ID", data.request_id],
+    ["任务状态", data.task_status],
+    ["草稿状态", data.draft_status],
+    ["审核结论", data.audit_status],
+    ["原要求时段", data.requested_slot],
+    ["建议时段", data.suggested_slot],
+    ["草稿 ID", data.draft_id],
+    ["重复提交", data.duplicate],
+    ["草稿总数", data.total_drafts],
+    ["步数 / 工具调用", `${data.step_count} / ${data.tool_call_count}`]
+  ];
+  if (meta.provider) cards.push(["模型来源", meta.provider]);
+  $("cards").innerHTML = cards.map(([k, v]) => {
+    const val = v === null || v === undefined ? "—"
+      : (typeof v === "boolean" ? (v ? "true" : "false") : String(v));
+    const cls = ["task_status","draft_status","audit_status","重复提交"].includes(k) ? statusCls(val) : "";
+    return `<div class="card"><div class="k">${esc(k)}</div>
+            <div class="v"><span class="tag ${cls}">${esc(val)}</span></div></div>`;
+  }).join("");
+
+  $("answer").textContent = data.final_answer || "（本次运行没有产出最终答复）";
+
+  // ---- 轨迹 ----
+  $("trace").innerHTML = data.trace.map((rec, i) => {
+    const {head, json} = splitObservation(rec.observation_summary || "");
+    const ok = rec.ok !== false;
+    const params = Object.keys(rec.action_input || {}).length
+      ? esc(JSON.stringify(rec.action_input)) : "（无参数）";
+    return `<div class="step ${ok ? "" : "fail"}" data-i="${i + 1}">
+      <div class="step-body">
+        <div class="step-head">
+          <span class="act">${esc(rec.action)}</span>
+          <span class="act-cn">${esc(CN[rec.action] || "")}</span>
+          ${ok ? "" : `<span class="tag t-bad">${esc(rec.error_code || "FAILED")}</span>`}
+        </div>
+        <div class="kv">入参 ${params}</div>
+        <p class="quote">${esc(rec.rationale || "（模型未给出理由）")}</p>
+        <div class="obs ${ok ? "" : "bad"}">${esc(head)}${json ? "\n" + esc(json) : ""}</div>
+        <div class="actarrow">↓ 下一动作 <span class="act">${esc(rec.next_action || "—")}</span></div>
+      </div>
+    </div>`;
+  }).join("") || '<div class="panel">本次运行没有留下任何轨迹记录。</div>';
+
+  // ---- 待确认 / 失败 ----
+  const fill = (nodeId, boxId, items) => {
+    if (!items || !items.length) { $(boxId).classList.add("hidden"); return; }
+    $(boxId).classList.remove("hidden");
+    // failures 的元素是 {stage, reason} 结构，必须展开显示而不是套 String() 变成 [object Object]
+    $(nodeId).innerHTML = items.map(x => {
+      if (x && typeof x === "object") {
+        const stage = x.stage || "—";
+        const reason = x.reason !== undefined ? String(x.reason) : JSON.stringify(x);
+        return `<li><span class="tag t-bad">${esc(stage)}</span> ${esc(reason)}</li>`;
+      }
+      return `<li>${esc(x)}</li>`;
+    }).join("");
+  };
+  fill("risks", "risks-box", data.risk_reasons);
+  fill("confirms", "confirms-box", data.pending_confirmations);
+  fill("failures", "failures-box", data.failures);
+
+  // ---- 本次走过的路径 ----
+  // 只做映射：每个 action 属于哪一类图节点，由 trace 本身决定，前端不推断分支。
+  const hops = data.trace.map(r => r.action === "request_clarification" ? "clarify" : "execute");
+  const counts = hops.reduce((m, h) => (m[h] = (m[h] || 0) + 1, m), {});
+  const finish = data.task_status === "MAX_STEPS_EXCEEDED" ? "exceeded" : "finalize";
+  // 每一次 ReAct 迭代 = 一次 decide + 一次 execute/clarify，按真实顺序交错展开
+  const seq = ["prepare"];
+  hops.forEach(h => seq.push("decide", h));
+  seq.push("decide", finish);
+  const note = {prepare:"装载任务输入", decide:"模型选择动作", execute:"执行工具并回填观察",
+                clarify:"登记待确认项", finalize:"以工具结果收尾", exceeded:"预算耗尽，如实报未完成"};
+  $("pathpane").innerHTML =
+    `<div style="font-family:var(--mono);font-size:12.5px;line-height:2.6">` +
+    seq.map(s => `<span class="tag ${s === "exceeded" ? "t-warn" : "t-info"}">${esc(s)}</span>`).join(" → ") +
+    `</div>
+     <div style="color:var(--muted);font-size:12.5px;margin-top:8px">
+       共 ${hops.length} 次 ReAct 迭代（execute ${counts.execute || 0} 次 / clarify ${counts.clarify || 0} 次），
+       终点是 <code>${esc(finish)}</code> —— ${esc(note[finish])}。
+       走哪条分支由模型输出的 action 决定，路由节点不做任何业务判断。
+     </div>`;
+
+  $("out").classList.remove("hidden");
+}
+
+function show(obj){
+  try { render(obj); $("err").classList.remove("show"); }
+  catch (e) { $("err").textContent = "无法解析：" + e.message; $("err").classList.add("show"); }
+}
+
+function readFile(f){
+  const r = new FileReader();
+  r.onload = () => { try { show(JSON.parse(r.result)); }
+                     catch (e) { fail("文件不是合法 JSON：" + e.message); } };
+  r.onerror = () => fail("文件读取失败");
+  r.readAsText(f, "utf-8");
+}
+function fail(msg){
+  $("err").textContent = msg; $("err").classList.add("show"); $("out").classList.add("hidden");
+}
+
+$("pick").onclick = () => $("file").click();
+$("file").onchange = (e) => e.target.files[0] && readFile(e.target.files[0]);
+$("sample").onclick = () => show(SAMPLE);
+$("parse").onclick = () => {
+  const t = $("raw").value.trim();
+  if (!t) return fail("请先粘贴 JSON");
+  try { show(JSON.parse(t)); } catch (e) { fail("粘贴的内容不是合法 JSON：" + e.message); }
+};
+
+const drop = $("drop");
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add("over");
+}));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove("over");
+}));
+drop.addEventListener("drop", e => {
+  const f = e.dataTransfer.files[0];
+  if (f) readFile(f);
+});
+
+// 支持 ?sample=1 直接打开样例，省得先跑一遍命令才能看到效果
+if (location.search.indexOf("sample") >= 0) show(SAMPLE);
+</script>
+</body>
+</html>

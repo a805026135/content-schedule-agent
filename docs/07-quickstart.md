@@ -165,6 +165,20 @@ echo %ERRORLEVEL%          # bash: echo $?    →  2
 
 ---
 
+## 7.5 用查看器看结果（可选）
+
+不想在终端里读 JSON 的话，用 `viewer/index.html`：
+
+```bash
+.venv/Scripts/python.exe -m src.cli --material M01 --request-id REQ-M01 \
+    --mock-script examples/mock/case04_slot_conflict/mock_script.json \
+    --out runs/demo.json --drafts-path runs/demo-drafts.json
+# 浏览器打开 viewer/index.html，把 runs/demo.json 拖进去
+# 或者直接打开 viewer/index.html?sample=1 看内置样例
+```
+
+零依赖单文件，不在运行链路里。多场景对比记得换 `--out`，否则会覆盖上一次的结果。
+
 ## 8. 出问题先看这里
 
 | 现象 | 原因与处理 |

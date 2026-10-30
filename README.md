@@ -61,6 +61,53 @@ cp .env.example .env          # 可选：填入 DEEPSEEK_API_KEY 以使用真实
 
 ---
 
+## 状态流转
+
+```mermaid
+flowchart TD
+    P["prepare<br/>装载任务输入，构造首轮对话"] --> D{"decide<br/>模型输出 rationale + action"}
+    D -->|"工具名"| E["execute<br/>执行工具，观察回填对话"]
+    D -->|"request_clarification"| C["clarify<br/>登记待人工确认项"]
+    D -->|"finish"| F["finalize<br/>以工具结果为准收尾"]
+    D -->|"预算耗尽"| X["exceeded<br/>如实返回未完成"]
+    E -->|"未达上限"| D
+    E -->|"达上限"| X
+    C --> D
+    F --> Z0["退出码 0 或 3"]
+    X --> Z2["退出码 2"]
+
+    classDef good fill:#e8f5ee,stroke:#1a7f4b,color:#1a7f4b
+    classDef warn fill:#fdf3dc,stroke:#8a5a00,color:#8a5a00
+    class F good
+    class X,Z2 warn
+```
+
+每个节点只做一件事，且只写自己负责的那部分状态：
+
+| 节点 | 做什么 | 写入的关键状态 |
+|---|---|---|
+| `prepare` | 把静态输入变成首轮对话，只执行一次 | `conversation` |
+| `decide` | 调模型取下一步动作；**预算检查在花钱调模型之前** | `step_count`、`_pending_action` |
+| `execute` | 按名字取工具并执行，把结果回填进对话 | `trace`、`tool_call_count`、`draft_status` |
+| `clarify` | 把待确认项登记下来，不替模型改写问题文案 | `pending_confirmations` |
+| `finalize` | 收尾；**保存状态以 trace 为准，不听模型自述** | `draft_status`、`final_answer`、`failures` |
+| `exceeded` | 返回明确的未完成状态，草稿状态保持原样 | `task_status=MAX_STEPS_EXCEEDED` |
+
+`finalize` 之后的退出码取决于 `task_status`：正常收尾是 `0`；若模型连续多次给不出合规动作
+（`LLM_DECISION_FAILED`）则是 `3`。两条路都经过同一个节点，因为「决策失败」同样要如实收尾、
+同样要被记录进 `failures`——它只是不产生排期结论。
+
+两条路由函数**只按 action 名搬运，不做任何业务判断**——是否查询、是否换时段、是否请求确认、
+是否结束，全部来自模型的输出。如果把"查到冲突就改期"写成代码里的 `if`，
+那就成了固定条件分支，不再是 ReAct。
+
+`finalize` 是这个图里唯一会**纠正模型**的地方，两道防线都在这里：
+
+- trace 里没有任何一次 `save_draft` 成功返回，却声称 `saved` → 强制改写为 `not_saved` 并记入 `failures`；
+- 最终答复出现「已发布」类措辞但从未成功保存 → 记一条待人工复核的 `failures`。
+
+---
+
 想先亲手跑一遍再看设计，照抄 `docs/07-quickstart.md`（三种运行模式 + 六个必验点命令 + 退出码复现 + 排障表）。
 
 ## 评审入口（建议按这个顺序看）
@@ -122,6 +169,154 @@ cp .env.example .env          # 可选：填入 DEEPSEEK_API_KEY 以使用真实
 
 ---
 
+## 测试在守什么
+
+43 个用例分两个文件，**都不需要 API Key**：
+
+| 文件 | 数量 | 验证对象 | 模型怎么来 |
+|---|---|---|---|
+| `tests/test_tools.py` | 29 | 工具层：没有模型参与时的确定性行为 | 不调用模型 |
+| `tests/test_decision_paths.py` | 14 | 编排层：路由、预算、纠正 | `ScriptedMockLLMClient` 脚本替身 |
+
+刻意分开是有原因的：脚本替身只能证明**流程**正确，证明不了**模型会不会做决定**；
+所以两者互不充当对方的证据——模型能力的证据放在 `examples/real_llm/`，
+流程正确性的证据放在测试里。用脚本替身还顺带解决了 CI 里模型抖动导致用例偶发变红的问题。
+
+### 用例分布
+
+`tests/test_tools.py`（29）
+
+| 分组 | 数量 | 守住什么 |
+|---|---|---|
+| 结构性防线 | 2 | 工具集无发布入口；写入状态只能是 `draft` |
+| `fetch_material` | 4 | 缺失字段如实报缺，不得被"猜"出来 |
+| `check_rules` | 5 | 风险分级；**未知算子必须报错而不是静默跳过** |
+| `query_slots` | 3 | 数据集里没有的日期不能假装可用 |
+| `save_draft` 幂等 | 3 | 同键同体重放、同键异体冲突、不同请求互不干扰 |
+| `save_draft` 冲突时段 | 5 | 占用 / 受限 / 已被其他草稿占用 / 未知时段一律拒绝，且失败不留半成品 |
+| 故障注入 | 2 | 开关默认关闭；注入后如实返回 `TOOL_UNAVAILABLE` |
+| `ToolResult` 不变量 | 5 | `ok` 与 `error_code` 不得并存；**工具文档参数名必须等于函数签名参数名** |
+
+`tests/test_decision_paths.py`（14）
+
+| 分组 | 数量 | 守住什么 |
+|---|---|---|
+| 两条差异化路径 | 4 | 同一套编排产出两条不同路径；trace 里有理由、有观察、有后续动作 |
+| 运行边界 | 3 | 步数 / 工具调用上限；自维护计数器先于 LangGraph 的 `recursion_limit` 生效 |
+| 关键缺陷防护 | 7 | 越权发布、虚报保存、隐瞒失败、幻觉工具、重复提交、**网络故障不得算到模型头上** |
+
+### 四个完整用例
+
+下面四段代码可直接从仓库里跑通，每段都附了单跑命令。
+
+**① 发布能力根本不存在**（不是"提示词里写了不要发布"）
+
+```python
+# tests/test_tools.py::test_registry_contains_no_publish_capability
+def test_registry_contains_no_publish_capability(tools):
+    names = set(tools.registry().keys())
+    assert names == {"fetch_material", "check_rules", "query_slots", "save_draft"}
+
+    forbidden = ("publish", "post", "release", "commit", "send", "deploy", "push")
+    offenders = {n for n in names for f in forbidden if f in n.lower()}
+    assert offenders == set()
+```
+
+提示词约束可以被绕过和遗忘，工具集里没有这个入口则绕不过去。
+```bash
+.venv/Scripts/python.exe -m pytest tests/test_tools.py::test_registry_contains_no_publish_capability -v
+```
+
+**② 同幂等键配不同内容，必须是冲突而不是重放**
+
+```python
+# tests/test_tools.py::test_same_key_different_body_is_a_conflict_not_a_replay
+def test_same_key_different_body_is_a_conflict_not_a_replay(tools):
+    tools.save_draft(request_id="REQ-CF", material_id="M04", slot="15:00")
+    other = tools.save_draft(request_id="REQ-CF", material_id="M01", slot="19:00")
+    assert not other.ok
+    assert other.error_code == ERR_IDEMPOTENCY_CONFLICT
+```
+
+只存 `request_id` 不存内容指纹的实现，会把这第二次请求静默重放成上一次的结果——
+那是比报错严重得多的错误，因为它看起来成功了。
+
+**③ 模型声称"已保存"但没保存过，必须被纠正**
+
+```python
+# tests/test_decision_paths.py::test_falsely_claimed_save_is_corrected
+def test_falsely_claimed_save_is_corrected(isolated_dir):
+    script = [
+        {"rationale": "读素材", "action": "fetch_material", "action_input": {"material_id": "M04"}},
+        {
+            "rationale": "直接收尾",
+            "action": "finish",
+            "action_input": {"answer": "已保存草稿", "draft_status": "saved"},
+        },
+    ]
+    path = _run(_agent(script, isolated_dir=isolated_dir))
+    assert path["draft_status"] == "not_saved"
+    assert any("强制记为未保存" in f["reason"] for f in path["failures"])
+```
+
+输入脚本里模型明确写了 `draft_status: "saved"`，但 trace 里一次成功的 `save_draft` 都没有。
+`finalize` 以工具结果为准改写状态，模型自述不作数——这条直接对应"虚报保存成功"这个关键缺陷。
+
+**④ 达到上限必须返回明确的未完成状态**
+
+```python
+# tests/test_decision_paths.py::test_step_budget_returns_explicit_unfinished_state
+def test_step_budget_returns_explicit_unfinished_state(isolated_dir):
+    looping = [
+        {"rationale": "反复重试", "action": "query_slots", "action_input": {}}
+        for _ in range(50)
+    ]
+    path = _run(_agent(looping, isolated_dir=isolated_dir, max_steps=3))
+    assert path["task_status"] == STATUS_EXCEEDED
+    assert path["draft_status"] == "not_saved"
+    assert "未完成" in path["final_answer"]
+    assert path["step_count"] <= 4
+```
+
+脚本给了 50 步，预算只有 3 步。断言的最后一行为什么是 `<= 4` 而不是 `== 3`：
+预算检查发生在**调用模型之前**，所以第 4 步不会真的花钱去问模型，只是被判超限。
+```bash
+.venv/Scripts/python.exe -m pytest tests/test_decision_paths.py::test_step_budget_returns_explicit_unfinished_state -v
+```
+
+还有一个值得单独看的用例
+`tests/test_decision_paths.py::test_model_unavailable_is_not_reported_as_decision_failure`：
+它锁定的是"网络不可达必须报成服务不可用（退出码 4），不能被算成模型给不出合规动作（退出码 3）"——
+一次网络抖动如果被记到模型的决策能力账上，失败归因就脏了。
+
+---
+
+## 用查看器阅读运行结果（可选）
+
+`viewer/index.html` 是一个**零依赖单文件**页面，用来读 CLI 的输出：
+
+```bash
+# 1. 让 CLI 把结果落成 JSON
+.venv/Scripts/python.exe -m src.cli --material M01 --request-id REQ-M01 \
+    --mock-script examples/mock/case04_slot_conflict/mock_script.json \
+    --out runs/demo.json --drafts-path runs/demo-drafts.json
+
+# 2. 用浏览器打开 viewer/index.html，把 runs/demo.json 拖进去
+#    不想先跑命令：直接打开 viewer/index.html?sample=1 看内置样例
+```
+
+页面会渲染：概览卡片（任务/草稿/审核状态、建议时段、是否重复）、最终答复、
+ReAct 轨迹（每一步的**理由 / 入参 / 观察 / 下一动作**）、待人工确认项、失败与纠正记录、
+以及本次实际走过的状态路径。
+
+三点需要说明：
+
+- 它**不在运行链路里**，不进 `requirements.txt`，不改动任何 Agent 行为，纯属阅读辅助；
+- 轨迹里的每一项都原样取自运行结果，页面不做补全、不做改写，也不推断分支；
+- 支持拖入文件 / 选择文件 / 粘贴 JSON 三种方式，`file://` 直接双击打开即可，不需要起服务。
+
+---
+
 ## 项目结构
 
 ```
@@ -136,12 +331,14 @@ content-schedule-agent/
 │   │   └── state.py              State 与 trace 记录的 schema
 │   └── tools/
 │       └── schedule_tools.py     四个确定性工具 + 幂等写 + 故障注入
-├── tests/                        43 个用例
+├── tests/                        43 个用例（工具层 29 + 编排层 14），均无需 Key
 ├── examples/
 │   ├── real_llm/                 真实模型跑出来的六组 + 超限用例（决策能力的证据）
 │   └── mock/                     离线脚本跑出来的七组，零配置复现（流程的证据）
 ├── data/                         合成素材、规则、排期表
-├── docs/                         01 ~ 06
+├── viewer/
+│   └── index.html               单文件结果查看器（可选展示层，零依赖，不进依赖清单）
+├── docs/                         01 ~ 07
 └── scripts/                      接入自检、决策探针、示例生成、运行截图渲染
 ```
 
